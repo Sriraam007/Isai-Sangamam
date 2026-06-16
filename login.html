@@ -430,19 +430,37 @@
             btn.disabled = true;
             btn.textContent = 'Creating account...';
 
-            const { error } = await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password: pass,
-                options: { data: { full_name: name } }
+                options: {
+                    data: { full_name: name },
+                    emailRedirectTo: 'https://isai-sangamam.vercel.app/index.html'
+                }
             });
+
+            btn.disabled = false;
+            btn.textContent = 'Create Account';
 
             if (error) {
                 showMsg('signup-msg', error.message, 'error');
-                btn.disabled = false;
-                btn.textContent = 'Create Account';
+                return;
+            }
+
+            // Check if email confirmation is required
+            if (data.user && data.user.identities && data.user.identities.length === 0) {
+                showMsg('signup-msg', 'This email is already registered. Please sign in.', 'error');
+                return;
+            }
+
+            if (data.session) {
+                // Email confirmation is OFF — user is logged in directly
+                showMsg('signup-msg', '✓ Account created! Taking you to your music...', 'success');
+                setTimeout(() => window.location.href = 'index.html', 1500);
             } else {
-                showMsg('signup-msg', '✓ Account created! Signing you in...', 'success');
-                setTimeout(() => window.location.href = 'index.html', 1800);
+                // Email confirmation is ON — ask user to check inbox
+                showMsg('signup-msg', '✓ Check your email and click the confirmation link to activate your account.', 'success');
+                btn.textContent = 'Email sent';
             }
         }
 
